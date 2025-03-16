@@ -1,11 +1,14 @@
 
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Bitcoin, DollarSign } from "lucide-react";
 
 interface AssetData {
   name: string;
   value: number;
   color: string;
+  currency: string;
+  type: 'fiat' | 'crypto';
 }
 
 interface PortfolioChartProps {
@@ -20,6 +23,30 @@ const PortfolioChart = ({ data }: PortfolioChartProps) => {
     }));
   }, [data]);
 
+  // Custom tooltip content for better currency visualization
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-background/90 backdrop-blur-sm border border-border p-3 rounded-lg shadow-sm">
+          <p className="font-medium text-sm">{data.name}</p>
+          <div className="flex items-center text-sm mt-1">
+            {data.type === 'crypto' ? (
+              <Bitcoin className="h-3 w-3 mr-1 text-muted-foreground" />
+            ) : (
+              <DollarSign className="h-3 w-3 mr-1 text-muted-foreground" />
+            )}
+            <span>{data.currency}: {data.realValue.toLocaleString()}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {data.value}% of portfolio
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="glass rounded-2xl p-6 h-[400px] card-hover animate-scale-in">
       <h3 className="text-lg font-medium mb-6">Portfolio Allocation</h3>
@@ -27,7 +54,11 @@ const PortfolioChart = ({ data }: PortfolioChartProps) => {
       <ResponsiveContainer width="100%" height="85%">
         <PieChart>
           <Pie
-            data={formattedData}
+            data={formattedData.map(item => ({
+              ...item,
+              realValue: item.value, // Store the original value
+              value: item.value // For chart display
+            }))}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -40,24 +71,25 @@ const PortfolioChart = ({ data }: PortfolioChartProps) => {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip 
-            formatter={(value) => [`${value}%`, 'Allocation']}
-            contentStyle={{ 
-              borderRadius: '0.75rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend
             layout="vertical"
             verticalAlign="middle"
             align="right"
             wrapperStyle={{ paddingLeft: "20px" }}
-            formatter={(value) => (
-              <span className="text-sm font-medium text-foreground">{value}</span>
-            )}
+            formatter={(value, entry: any) => {
+              const item = entry.payload;
+              return (
+                <span className="flex items-center text-sm">
+                  {item.type === 'crypto' ? (
+                    <Bitcoin className="h-3 w-3 mr-1 inline" />
+                  ) : (
+                    <DollarSign className="h-3 w-3 mr-1 inline" />
+                  )}
+                  <span className="font-medium text-foreground">{value}</span>
+                </span>
+              );
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

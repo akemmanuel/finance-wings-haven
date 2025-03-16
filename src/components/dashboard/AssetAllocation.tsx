@@ -1,6 +1,8 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { formatCurrencyValue } from "@/utils/currencyUtils";
+import { Bitcoin, DollarSign } from "lucide-react";
 
 interface Asset {
   id: string;
@@ -12,6 +14,8 @@ interface Asset {
     percentage: number;
   };
   color: string;
+  currency: string;
+  type: 'fiat' | 'crypto';
 }
 
 interface AssetAllocationProps {
@@ -28,14 +32,6 @@ const AssetAllocation = ({ assets }: AssetAllocationProps) => {
       return b.change.percentage - a.change.percentage;
     });
   }, [assets, sortBy]);
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
-    }).format(value);
-  };
   
   const formatPercentage = (value: number) => {
     return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -93,10 +89,23 @@ const AssetAllocation = ({ assets }: AssetAllocationProps) => {
             
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{asset.name}</p>
+              <span className="text-xs text-muted-foreground">
+                {asset.type === 'crypto' ? (
+                  <span className="flex items-center">
+                    <Bitcoin className="h-3 w-3 mr-1" />
+                    {asset.currency}
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    {asset.currency}
+                  </span>
+                )}
+              </span>
             </div>
             
             <div className="flex flex-col items-end">
-              <span className="text-sm font-medium">{formatCurrency(asset.value)}</span>
+              <span className="text-sm font-medium">{formatCurrencyValue(asset.value, asset.currency)}</span>
               <span className="text-xs">{asset.allocation}%</span>
             </div>
             

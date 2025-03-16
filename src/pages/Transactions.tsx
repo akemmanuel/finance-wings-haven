@@ -1,10 +1,11 @@
 
 import { useState, useMemo } from "react";
-import { CalendarIcon, Search, ArrowUpRight, ArrowDownLeft, Filter } from "lucide-react";
+import { CalendarIcon, Search, ArrowUpRight, ArrowDownLeft, Filter, DollarSign, Bitcoin } from "lucide-react";
 import Shell from "@/components/layout/Shell";
 import { cn } from "@/lib/utils";
+import { formatCurrencyValue, allCurrencies, CurrencyType } from "@/utils/currencyUtils";
 
-// Sample transaction data
+// Updated transaction data to include currency
 const TRANSACTIONS = [
   {
     id: "t1",
@@ -13,7 +14,8 @@ const TRANSACTIONS = [
     date: "2023-08-15",
     type: "income" as const,
     category: "Income",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "USD"
   },
   {
     id: "t2",
@@ -22,7 +24,8 @@ const TRANSACTIONS = [
     date: "2023-08-02",
     type: "expense" as const,
     category: "Housing",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "USD"
   },
   {
     id: "t3",
@@ -31,7 +34,8 @@ const TRANSACTIONS = [
     date: "2023-08-10",
     type: "income" as const,
     category: "Investment",
-    account: "Investment Account"
+    account: "Investment Account",
+    currency: "USD"
   },
   {
     id: "t4",
@@ -40,7 +44,8 @@ const TRANSACTIONS = [
     date: "2023-08-08",
     type: "expense" as const,
     category: "Food",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t5",
@@ -49,7 +54,8 @@ const TRANSACTIONS = [
     date: "2023-08-05",
     type: "income" as const,
     category: "Income",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "EUR"
   },
   {
     id: "t6",
@@ -58,7 +64,8 @@ const TRANSACTIONS = [
     date: "2023-08-12",
     type: "expense" as const,
     category: "Food",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t7",
@@ -67,16 +74,18 @@ const TRANSACTIONS = [
     date: "2023-08-14",
     type: "expense" as const,
     category: "Utilities",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "USD"
   },
   {
     id: "t8",
-    title: "Stock Purchase",
-    amount: 1000,
+    title: "Bitcoin Purchase",
+    amount: 0.025,
     date: "2023-08-06",
     type: "expense" as const,
     category: "Investment",
-    account: "Investment Account"
+    account: "Crypto Wallet",
+    currency: "BTC"
   },
   {
     id: "t9",
@@ -85,7 +94,8 @@ const TRANSACTIONS = [
     date: "2023-08-09",
     type: "expense" as const,
     category: "Transportation",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t10",
@@ -94,7 +104,8 @@ const TRANSACTIONS = [
     date: "2023-08-07",
     type: "expense" as const,
     category: "Education",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t11",
@@ -103,7 +114,8 @@ const TRANSACTIONS = [
     date: "2023-08-01",
     type: "expense" as const,
     category: "Health",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "USD"
   },
   {
     id: "t12",
@@ -112,7 +124,8 @@ const TRANSACTIONS = [
     date: "2023-08-16",
     type: "income" as const,
     category: "Income",
-    account: "Checking Account"
+    account: "Checking Account",
+    currency: "USD"
   },
   {
     id: "t13",
@@ -121,7 +134,8 @@ const TRANSACTIONS = [
     date: "2023-08-03",
     type: "expense" as const,
     category: "Utilities",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t14",
@@ -130,7 +144,8 @@ const TRANSACTIONS = [
     date: "2023-08-05",
     type: "expense" as const,
     category: "Health",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
   },
   {
     id: "t15",
@@ -139,7 +154,28 @@ const TRANSACTIONS = [
     date: "2023-08-13",
     type: "expense" as const,
     category: "Entertainment",
-    account: "Credit Card"
+    account: "Credit Card",
+    currency: "USD"
+  },
+  {
+    id: "t16",
+    title: "Ethereum Trading Profit",
+    amount: 0.5,
+    date: "2023-08-04",
+    type: "income" as const,
+    category: "Investment",
+    account: "Crypto Wallet",
+    currency: "ETH"
+  },
+  {
+    id: "t17",
+    title: "Solana Purchase",
+    amount: 15,
+    date: "2023-08-15",
+    type: "expense" as const,
+    category: "Investment",
+    account: "Crypto Wallet",
+    currency: "SOL"
   }
 ];
 
@@ -147,12 +183,16 @@ const TRANSACTIONS = [
 const ALL_CATEGORIES = Array.from(new Set(TRANSACTIONS.map(t => t.category)));
 // All unique accounts
 const ALL_ACCOUNTS = Array.from(new Set(TRANSACTIONS.map(t => t.account)));
+// All unique currencies from transactions
+const TRANSACTION_CURRENCIES = Array.from(new Set(TRANSACTIONS.map(t => t.currency)));
 
 const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [accountFilter, setAccountFilter] = useState<string | null>(null);
+  const [currencyFilter, setCurrencyFilter] = useState<string | null>(null);
+  const [currencyTypeFilter, setCurrencyTypeFilter] = useState<CurrencyType | 'all'>("all");
   const [dateRangeFilter, setDateRangeFilter] = useState<"all" | "this-week" | "this-month">("all");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   
@@ -161,7 +201,8 @@ const Transactions = () => {
       // Search filter
       const matchesSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           transaction.account.toLowerCase().includes(searchTerm.toLowerCase());
+                           transaction.account.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           transaction.currency.toLowerCase().includes(searchTerm.toLowerCase());
       
       // Type filter
       const matchesType = typeFilter === "all" || transaction.type === typeFilter;
@@ -171,6 +212,14 @@ const Transactions = () => {
       
       // Account filter
       const matchesAccount = !accountFilter || transaction.account === accountFilter;
+      
+      // Currency filter
+      const matchesCurrency = !currencyFilter || transaction.currency === currencyFilter;
+      
+      // Currency type filter
+      const matchesCurrencyType = currencyTypeFilter === "all" || 
+        (currencyTypeFilter === "fiat" && !cryptoCurrencies.some(c => c.code === transaction.currency)) ||
+        (currencyTypeFilter === "crypto" && cryptoCurrencies.some(c => c.code === transaction.currency));
       
       // Date range filter
       let matchesDateRange = true;
@@ -190,17 +239,9 @@ const Transactions = () => {
         }
       }
       
-      return matchesSearch && matchesType && matchesCategory && matchesAccount && matchesDateRange;
+      return matchesSearch && matchesType && matchesCategory && matchesAccount && matchesCurrency && matchesCurrencyType && matchesDateRange;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [searchTerm, typeFilter, categoryFilter, accountFilter, dateRangeFilter]);
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 2
-    }).format(Math.abs(value));
-  };
+  }, [searchTerm, typeFilter, categoryFilter, accountFilter, currencyFilter, currencyTypeFilter, dateRangeFilter]);
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -211,15 +252,42 @@ const Transactions = () => {
     }).format(date);
   };
 
+  // Calculate totals based on filtered transactions
+  // For simplicity, we'll convert everything to USD using a simple conversion rate
+  // In a real app, you would fetch real exchange rates
+  const convertToUSD = (amount: number, currency: string): number => {
+    const rates: Record<string, number> = {
+      USD: 1,
+      EUR: 1.08,
+      GBP: 1.27,
+      JPY: 0.0067,
+      BTC: 65000,
+      ETH: 3500,
+      SOL: 150,
+      USDT: 1
+    };
+    
+    return amount * (rates[currency] || 1);
+  };
+
   const totalIncome = filteredTransactions
     .filter(t => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + convertToUSD(t.amount, t.currency), 0);
     
   const totalExpense = filteredTransactions
     .filter(t => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + convertToUSD(t.amount, t.currency), 0);
   
   const balance = totalIncome - totalExpense;
+  
+  // Show currency icon based on type
+  const getCurrencyIcon = (currencyCode: string) => {
+    const currency = allCurrencies.find(c => c.code === currencyCode);
+    if (currency?.type === 'crypto') {
+      return <Bitcoin className="h-4 w-4" />;
+    }
+    return <DollarSign className="h-4 w-4" />;
+  };
   
   return (
     <Shell>
@@ -232,11 +300,11 @@ const Transactions = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="glass rounded-2xl p-6 card-hover animate-scale-in">
           <p className="text-muted-foreground text-sm font-medium">Total Income</p>
-          <h3 className="text-2xl font-semibold mt-1 text-finance-positive">{formatCurrency(totalIncome)}</h3>
+          <h3 className="text-2xl font-semibold mt-1 text-finance-positive">{formatCurrencyValue(totalIncome, 'USD')}</h3>
         </div>
         <div className="glass rounded-2xl p-6 card-hover animate-scale-in">
           <p className="text-muted-foreground text-sm font-medium">Total Expenses</p>
-          <h3 className="text-2xl font-semibold mt-1 text-finance-negative">{formatCurrency(totalExpense)}</h3>
+          <h3 className="text-2xl font-semibold mt-1 text-finance-negative">{formatCurrencyValue(totalExpense, 'USD')}</h3>
         </div>
         <div className="glass rounded-2xl p-6 card-hover animate-scale-in">
           <p className="text-muted-foreground text-sm font-medium">Balance</p>
@@ -244,7 +312,7 @@ const Transactions = () => {
             "text-2xl font-semibold mt-1",
             balance >= 0 ? "text-finance-positive" : "text-finance-negative"
           )}>
-            {balance >= 0 ? "+" : "-"}{formatCurrency(Math.abs(balance))}
+            {balance >= 0 ? "+" : "-"}{formatCurrencyValue(Math.abs(balance), 'USD')}
           </h3>
         </div>
       </div>
@@ -300,6 +368,43 @@ const Transactions = () => {
               )}
             >
               Expenses
+            </button>
+            
+            {/* Currency Type Filter */}
+            <button
+              onClick={() => setCurrencyTypeFilter("all")}
+              className={cn(
+                "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                currencyTypeFilter === "all" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              )}
+            >
+              All Currencies
+            </button>
+            <button
+              onClick={() => setCurrencyTypeFilter("fiat")}
+              className={cn(
+                "px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center",
+                currencyTypeFilter === "fiat" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              )}
+            >
+              <DollarSign className="h-4 w-4 mr-1" />
+              Fiat
+            </button>
+            <button
+              onClick={() => setCurrencyTypeFilter("crypto")}
+              className={cn(
+                "px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center",
+                currencyTypeFilter === "crypto" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              )}
+            >
+              <Bitcoin className="h-4 w-4 mr-1" />
+              Crypto
             </button>
             
             {/* Additional Filters Button */}
@@ -385,6 +490,25 @@ const Transactions = () => {
                 ))}
               </select>
             </div>
+            
+            {/* Currency Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Currency</label>
+              <select 
+                className="bg-secondary/50 text-sm rounded-lg block w-full p-2.5 focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
+                value={currencyFilter || ""}
+                onChange={(e) => setCurrencyFilter(e.target.value || null)}
+              >
+                <option value="">All Currencies</option>
+                {allCurrencies
+                  .filter(c => TRANSACTION_CURRENCIES.includes(c.code))
+                  .map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name} ({currency.code})
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
         )}
         
@@ -426,14 +550,18 @@ const Transactions = () => {
                 </div>
                 
                 <div className="flex flex-col items-end">
-                  <p className={cn(
-                    "font-medium",
+                  <div className={cn(
+                    "font-medium flex items-center",
                     transaction.type === "income" 
                       ? "text-finance-positive" 
                       : "text-finance-negative"
                   )}>
-                    {transaction.type === "income" ? "+" : "-"}{formatCurrency(transaction.amount)}
-                  </p>
+                    {getCurrencyIcon(transaction.currency)}
+                    <span className="ml-1">
+                      {transaction.type === "income" ? "+" : "-"}
+                      {formatCurrencyValue(transaction.amount, transaction.currency)}
+                    </span>
+                  </div>
                   <div className="flex items-center mt-1 text-xs text-muted-foreground">
                     <CalendarIcon className="h-3 w-3 mr-1" />
                     {formatDate(transaction.date)}
@@ -451,6 +579,8 @@ const Transactions = () => {
                   setTypeFilter("all");
                   setCategoryFilter(null);
                   setAccountFilter(null);
+                  setCurrencyFilter(null);
+                  setCurrencyTypeFilter("all");
                   setDateRangeFilter("all");
                 }}
               >
