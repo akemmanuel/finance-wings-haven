@@ -1,9 +1,12 @@
 
 import { useState, useMemo } from "react";
-import { CalendarIcon, Search, ArrowUpRight, ArrowDownLeft, Filter, DollarSign, Bitcoin } from "lucide-react";
+import { CalendarIcon, Search, ArrowUpRight, ArrowDownLeft, Filter, DollarSign, Bitcoin, PlusCircle } from "lucide-react";
 import Shell from "@/components/layout/Shell";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatCurrencyValue, allCurrencies, CurrencyType } from "@/utils/currencyUtils";
+import { formatCurrencyValue, allCurrencies, CurrencyType, cryptoCurrencies } from "@/utils/currencyUtils";
+import AddTransactionDialog, { NewTransaction } from "@/components/transactions/AddTransactionDialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Updated transaction data to include currency
 const TRANSACTIONS = [
@@ -187,6 +190,7 @@ const ALL_ACCOUNTS = Array.from(new Set(TRANSACTIONS.map(t => t.account)));
 const TRANSACTION_CURRENCIES = Array.from(new Set(TRANSACTIONS.map(t => t.currency)));
 
 const Transactions = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -195,9 +199,13 @@ const Transactions = () => {
   const [currencyTypeFilter, setCurrencyTypeFilter] = useState<CurrencyType | 'all'>("all");
   const [dateRangeFilter, setDateRangeFilter] = useState<"all" | "this-week" | "this-month">("all");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  
+  // State for transactions (converting the const to state so we can add new ones)
+  const [transactions, setTransactions] = useState(TRANSACTIONS);
   
   const filteredTransactions = useMemo(() => {
-    return TRANSACTIONS.filter((transaction) => {
+    return transactions.filter((transaction) => {
       // Search filter
       const matchesSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,7 +249,7 @@ const Transactions = () => {
       
       return matchesSearch && matchesType && matchesCategory && matchesAccount && matchesCurrency && matchesCurrencyType && matchesDateRange;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [searchTerm, typeFilter, categoryFilter, accountFilter, currencyFilter, currencyTypeFilter, dateRangeFilter]);
+  }, [searchTerm, typeFilter, categoryFilter, accountFilter, currencyFilter, currencyTypeFilter, dateRangeFilter, transactions]);
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -289,11 +297,46 @@ const Transactions = () => {
     return <DollarSign className="h-4 w-4" />;
   };
   
+  // Handle adding a new transaction
+  const handleAddTransaction = (newTransaction: NewTransaction) => {
+    const lastId = transactions.length > 0 
+      ? Number(transactions[transactions.length - 1].id.replace('t', ''))
+      : 0;
+    
+    const transaction = {
+      id: `t${lastId + 1}`,
+      ...newTransaction
+    };
+    
+    setTransactions([...transactions, transaction]);
+    
+    toast({
+      title: "Transaction Added",
+      description: `${transaction.title} has been added to your transactions.`,
+    });
+  };
+  
+  // Get all unique categories from current transactions
+  const allCategories = Array.from(new Set(transactions.map(t => t.category)));
+  // Get all unique accounts from current transactions
+  const allAccounts = Array.from(new Set(transactions.map(t => t.account)));
+  
   return (
     <Shell>
-      <div className="mb-8">
-        <h1 className="font-medium text-2xl md:text-3xl text-balance tracking-tight">Transactions</h1>
-        <p className="text-muted-foreground mt-1">View and manage your financial transactions.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="font-medium text-2xl md:text-3xl text-balance tracking-tight">Transactions</h1>
+          <p className="text-muted-foreground mt-1">View and manage your financial transactions.</p>
+        </div>
+        
+        {/* Add Transaction Button */}
+        <Button 
+          onClick={() => setIsAddTransactionOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Add Transaction
+        </Button>
       </div>
       
       {/* Transaction Summary */}
@@ -590,6 +633,15 @@ const Transactions = () => {
           )}
         </div>
       </div>
+      
+      {/* Add Transaction Dialog */}
+      <AddTransactionDialog
+        isOpen={isAddTransactionOpen}
+        onClose={() => setIsAddTransactionOpen(false)}
+        onAddTransaction={handleAddTransaction}
+        categories={allCategories}
+        accounts={allAccounts}
+      />
     </Shell>
   );
 };
